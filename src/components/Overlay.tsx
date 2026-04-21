@@ -10,7 +10,7 @@ export default function Overlay() {
           transition={{ duration: 1.2, delay: 0.5, ease: [0.43, 0.13, 0.23, 0.96] }}
           className="font-serif text-2xl md:text-4xl font-light text-white tracking-widest"
         >
-          Портфолио визажиста
+          Дарья — визажист
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: -10 }}
