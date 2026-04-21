@@ -1,6 +1,5 @@
-import { useRef, useState, useEffect } from "react"
+import { useRef, useState, useEffect, useMemo } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
-import { useTexture } from "@react-three/drei"
 import * as THREE from "three"
 
 const images = [
@@ -87,7 +86,11 @@ export default function Scene() {
   const dragStart = useRef({ x: 0, y: 0 })
   const dragRotation = useRef(0)
 
-  const textures = useTexture(images)
+  const textures = useMemo(() => {
+    const loader = new THREE.TextureLoader()
+    loader.setCrossOrigin("anonymous")
+    return images.map((url) => loader.load(url))
+  }, [])
 
   // Mouse parallax effect
   useEffect(() => {
