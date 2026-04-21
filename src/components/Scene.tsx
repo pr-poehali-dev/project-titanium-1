@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react"
+import { useRef, useState, useEffect, useMemo } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
 
@@ -41,17 +41,31 @@ const imagePositions = [
 ]
 
 interface FloatingImageProps {
-  texture: THREE.Texture
+  url: string
   index: number
   rotation: number
 }
 
-function FloatingImage({ texture, index, rotation }: FloatingImageProps) {
+function FloatingImage({ url, index, rotation }: FloatingImageProps) {
   const meshRef = useRef<THREE.Mesh>(null)
   const materialRef = useRef<THREE.MeshBasicMaterial>(null)
   const config = imagePositions[index]
-  const mountTime = useRef<number>(performance.now())
-  const fadeDelay = index * 120
+  const [loadedTime, setLoadedTime] = useState<number | null>(null)
+
+  const texture = useMemo(() => {
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    const tex = new THREE.Texture(img)
+    tex.colorSpace = THREE.SRGBColorSpace
+    img.onload = () => {
+      tex.needsUpdate = true
+      setLoadedTime(performance.now())
+    }
+    img.src = url
+    return tex
+  }, [url])
+
+  const fadeDelay = index * 100
   const fadeDuration = 1000
 
   useFrame((state) => {
@@ -63,12 +77,10 @@ function FloatingImage({ texture, index, rotation }: FloatingImageProps) {
     const time = state.clock.getElapsedTime()
     meshRef.current.position.y = config.pos[1] + Math.sin(time * 0.5 + index) * 0.1
 
-    const elapsed = performance.now() - mountTime.current - fadeDelay
-    const progress = Math.max(0, Math.min(1, elapsed / fadeDuration))
-    const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2
-
-    if (materialRef.current) {
-      materialRef.current.opacity = eased
+    if (materialRef.current && loadedTime !== null) {
+      const elapsed = performance.now() - loadedTime - fadeDelay
+      const progress = Math.max(0, Math.min(1, elapsed / fadeDuration))
+      materialRef.current.opacity = progress
     }
   })
 
@@ -82,6 +94,7 @@ function FloatingImage({ texture, index, rotation }: FloatingImageProps) {
         opacity={0}
         side={THREE.DoubleSide}
         toneMapped={false}
+        depthWrite={false}
       />
     </mesh>
   )
@@ -98,38 +111,7 @@ export default function Scene() {
   const dragStart = useRef({ x: 0, y: 0 })
   const dragRotation = useRef(0)
 
-  const [textures, setTextures] = useState<THREE.Texture[]>([])
 
-  useEffect(() => {
-    let cancelled = false
-    const loadTextures = async () => {
-      const loaded = await Promise.all(
-        images.map(
-          (url) =>
-            new Promise<THREE.Texture>((resolve) => {
-              const img = new Image()
-              img.crossOrigin = "anonymous"
-              img.onload = () => {
-                const tex = new THREE.Texture(img)
-                tex.needsUpdate = true
-                tex.colorSpace = THREE.SRGBColorSpace
-                resolve(tex)
-              }
-              img.onerror = () => {
-                const tex = new THREE.Texture()
-                resolve(tex)
-              }
-              img.src = url
-            })
-        )
-      )
-      if (!cancelled) setTextures(loaded)
-    }
-    loadTextures()
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   // Mouse parallax effect
   useEffect(() => {
@@ -291,8 +273,8 @@ export default function Scene() {
       <pointLight position={[-10, -10, -5]} intensity={0.4} color="#ff6b35" />
       <spotLight position={[0, 5, 5]} intensity={0.3} angle={0.6} penumbra={1} />
 
-      {textures.map((texture, index) => (
-        <FloatingImage key={index} texture={texture} index={index} rotation={rotation} />
+      {images.map((url, index) => (
+        <FloatingImage key={index} url={url} index={index} rotation={rotation} />
       ))}
 
       {/* Reflection plane */}
