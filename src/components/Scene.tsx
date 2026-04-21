@@ -48,7 +48,11 @@ interface FloatingImageProps {
 
 function FloatingImage({ texture, index, rotation }: FloatingImageProps) {
   const meshRef = useRef<THREE.Mesh>(null)
+  const materialRef = useRef<THREE.MeshBasicMaterial>(null)
   const config = imagePositions[index]
+  const startTime = useRef<number | null>(null)
+  const fadeDelay = index * 0.15
+  const fadeDuration = 1.2
 
   useFrame((state) => {
     if (!meshRef.current) return
@@ -58,15 +62,27 @@ function FloatingImage({ texture, index, rotation }: FloatingImageProps) {
 
     const time = state.clock.getElapsedTime()
     meshRef.current.position.y = config.pos[1] + Math.sin(time * 0.5 + index) * 0.1
+
+    if (startTime.current === null) startTime.current = time
+    const elapsed = time - startTime.current - fadeDelay
+    const progress = Math.max(0, Math.min(1, elapsed / fadeDuration))
+    const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2
+
+    if (materialRef.current) {
+      materialRef.current.opacity = eased
+    }
+    const zOffset = (1 - eased) * 1.5
+    meshRef.current.position.z = config.pos[2] + zOffset
   })
 
   return (
     <mesh ref={meshRef} position={config.pos} rotation={config.rot} scale={config.scale}>
       <planeGeometry args={[1.5, 2.1]} />
       <meshBasicMaterial
+        ref={materialRef}
         map={texture}
         transparent
-        opacity={1}
+        opacity={0}
         side={THREE.DoubleSide}
         toneMapped={false}
       />
