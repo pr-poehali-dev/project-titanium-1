@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useMemo } from "react"
+import { useRef, useState, useEffect } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
 
@@ -86,15 +86,37 @@ export default function Scene() {
   const dragStart = useRef({ x: 0, y: 0 })
   const dragRotation = useRef(0)
 
-  const [, forceUpdate] = useState(0)
-  const textures = useMemo(() => {
-    const loader = new THREE.TextureLoader()
-    loader.setCrossOrigin("anonymous")
-    return images.map((url) =>
-      loader.load(url, () => {
-        forceUpdate((n) => n + 1)
-      })
-    )
+  const [textures, setTextures] = useState<THREE.Texture[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    const loadTextures = async () => {
+      const loaded = await Promise.all(
+        images.map(
+          (url) =>
+            new Promise<THREE.Texture>((resolve) => {
+              const img = new Image()
+              img.crossOrigin = "anonymous"
+              img.onload = () => {
+                const tex = new THREE.Texture(img)
+                tex.needsUpdate = true
+                tex.colorSpace = THREE.SRGBColorSpace
+                resolve(tex)
+              }
+              img.onerror = () => {
+                const tex = new THREE.Texture()
+                resolve(tex)
+              }
+              img.src = url
+            })
+        )
+      )
+      if (!cancelled) setTextures(loaded)
+    }
+    loadTextures()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // Mouse parallax effect
