@@ -50,9 +50,9 @@ function FloatingImage({ texture, index, rotation }: FloatingImageProps) {
   const meshRef = useRef<THREE.Mesh>(null)
   const materialRef = useRef<THREE.MeshBasicMaterial>(null)
   const config = imagePositions[index]
-  const startTime = useRef<number | null>(null)
-  const fadeDelay = index * 0.15
-  const fadeDuration = 1.2
+  const mountTime = useRef<number>(performance.now())
+  const fadeDelay = index * 120
+  const fadeDuration = 1000
 
   useFrame((state) => {
     if (!meshRef.current) return
@@ -63,21 +63,18 @@ function FloatingImage({ texture, index, rotation }: FloatingImageProps) {
     const time = state.clock.getElapsedTime()
     meshRef.current.position.y = config.pos[1] + Math.sin(time * 0.5 + index) * 0.1
 
-    if (startTime.current === null) startTime.current = time
-    const elapsed = time - startTime.current - fadeDelay
+    const elapsed = performance.now() - mountTime.current - fadeDelay
     const progress = Math.max(0, Math.min(1, elapsed / fadeDuration))
     const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2
 
     if (materialRef.current) {
       materialRef.current.opacity = eased
     }
-    const zOffset = (1 - eased) * 1.5
-    meshRef.current.position.z = config.pos[2] + zOffset
   })
 
   return (
     <mesh ref={meshRef} position={config.pos} rotation={config.rot} scale={config.scale}>
-      <planeGeometry args={[1.5, 2.1]} />
+      <planeGeometry args={[1.2, 1.7]} />
       <meshBasicMaterial
         ref={materialRef}
         map={texture}
