@@ -86,10 +86,15 @@ export default function Scene() {
   const dragStart = useRef({ x: 0, y: 0 })
   const dragRotation = useRef(0)
 
+  const [, forceUpdate] = useState(0)
   const textures = useMemo(() => {
     const loader = new THREE.TextureLoader()
     loader.setCrossOrigin("anonymous")
-    return images.map((url) => loader.load(url))
+    return images.map((url) =>
+      loader.load(url, () => {
+        forceUpdate((n) => n + 1)
+      })
+    )
   }, [])
 
   // Mouse parallax effect
