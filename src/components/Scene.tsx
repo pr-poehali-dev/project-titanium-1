@@ -62,14 +62,13 @@ function FloatingImage({ texture, index, rotation }: FloatingImageProps) {
 
   return (
     <mesh ref={meshRef} position={config.pos} rotation={config.rot} scale={config.scale}>
-      <planeGeometry args={[0.833, 1.2]} />
-      <meshStandardMaterial
+      <planeGeometry args={[1.5, 2.1]} />
+      <meshBasicMaterial
         map={texture}
         transparent
-        opacity={0.95}
+        opacity={1}
         side={THREE.DoubleSide}
-        roughness={0.3}
-        metalness={0.1}
+        toneMapped={false}
       />
     </mesh>
   )
